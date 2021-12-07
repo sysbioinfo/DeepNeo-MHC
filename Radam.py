@@ -4,8 +4,8 @@ import math
 import torch
 from torch.optim.optimizer import Optimizer, required
 
-
 class RAdam(Optimizer):
+
     def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8, weight_decay=0, degenerated_to_sgd=True):
         if not 0.0 <= lr:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -28,11 +28,13 @@ class RAdam(Optimizer):
         super(RAdam, self).__setstate__(state)
 
     def step(self, closure=None):
+
         loss = None
         if closure is not None:
             loss = closure()
 
         for group in self.param_groups:
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -77,7 +79,7 @@ class RAdam(Optimizer):
                     else:
                         step_size = -1
                     buffered[2] = step_size
-
+               
                 # more conservative since it's an approximated value
                 if N_sma >= 5:
                     if group['weight_decay'] != 0:

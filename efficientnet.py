@@ -19,7 +19,6 @@ from torch import optim
 
 KERNEL_SIZE = 3
 
-
 class MBConvBlock(nn.Module):
     """
     Mobile Inverted Residual Bottleneck Block
@@ -98,6 +97,7 @@ class MBConvBlock(nn.Module):
         return x
 
 
+
 global allele
 allele = ''
 
@@ -111,6 +111,8 @@ class EfficientNet(nn.Module):
     Example:
         model = EfficientNet.from_pretrained('efficientnet-b0')
     """
+
+
     def __init__(self, blocks_args=None, global_params=None):
         super().__init__()
         assert isinstance(blocks_args, list), 'blocks_args should be a list'
@@ -152,6 +154,7 @@ class EfficientNet(nn.Module):
         # Head
         in_channels = block_args.output_filters  # output of final block maybe 16?
         out_channels = round_filters(3, self._global_params)
+        #out_channels = 1280
         self._conv_head = Conv2d(in_channels, out_channels, kernel_size=KERNEL_SIZE, bias=False)
         self._bn1 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
 
@@ -181,15 +184,23 @@ class EfficientNet(nn.Module):
 
     def forward(self, inputs):
         """ Calls extract_features to extract features, applies final linear layer, and returns logits. """
+        #bs = inputs.size(0)
+        #print(bs)
         # Convolution layers
         x = self.extract_features(inputs)
+
         # Pooling and final linear layer
         x = self._avg_pooling(x)
+        #x = x.view(bs, -1)
+        #print(x.shape)
+        
         x = x.flatten(start_dim=1)
         x = self._dropout(x)
         x = self._fc(x)
+        #print(x.shape)
+       
         return torch.sigmoid(x)
-
+        
     @classmethod
     def from_name(cls, model_name, override_params=None):
         #cls._check_model_name_is_valid(model_name)
@@ -197,6 +208,16 @@ class EfficientNet(nn.Module):
         allele = model_name
         blocks_args, global_params = get_model_params(model_name, override_params)
         return cls(blocks_args, global_params)
+
+    @classmethod
+    def from_pretrained(cls, model_name, advprop=False, num_classes=1, in_channels=1):
+        model = cls.from_name(model_name, override_params={'num_classes': num_classes})
+        load_pretrained_weights(model, model_name, load_fc=(num_classes == 1000), advprop=advprop)
+        if in_channels != 3:
+            Conv2d = get_same_padding_conv2d(image_size = model._global_params.image_size)
+            out_channels = round_filters(32, model._global_params)
+            model._conv_stem = Conv2d(in_channels, out_channels, kernel_size=3, stride=2, bias=False)
+        return model
     
     @classmethod
     def get_image_size(cls, model_name):
@@ -210,6 +231,9 @@ class EfficientNet(nn.Module):
         valid_models = ['efficientnet-b'+str(i) for i in range(9)]
         if model_name not in valid_models:
             raise ValueError('model_name should be one of: ' + ', '.join(valid_models))
+            
+            
+
 
 ########################################################################
 ############### HELPERS FUNCTIONS FOR MODEL ARCHITECTURE ###############
@@ -257,7 +281,6 @@ class Mish(nn.Module):
 class MemoryEfficientSwish(nn.Module):
     def forward(self, x):
         return SwishImplementation.apply(x)
-
 
 class Swish(nn.Module):
     def forward(self, x):
@@ -465,13 +488,13 @@ def efficientnet(width_coefficient=None, depth_coefficient=None, dropout_rate=0.
 
     blocks_args = [
         'r1_k3_s11_e1_i1_o8_se0.25', 
-        # 'r2_k3_s22_e6_i8_o16_se0.25',
-        # 'r2_k5_s22_e6_i24_o40_se0.25',
-        # 'r3_k3_s22_e6_i40_o80_se0.25',
-        # 'r3_k5_s11_e6_i80_o112_se0.25',
-        # 'r4_k5_s22_e6_i112_o192_se0.25',
-        # 'r1_k3_s11_e6_i192_o320_se0.25',
-        # 'r1_k3_s11_e6_i24_o48_se0.25',
+        'r2_k3_s22_e6_i8_o16_se0.25',
+        #'r2_k5_s22_e6_i24_o40_se0.25', 
+        #'r3_k3_s22_e6_i40_o80_se0.25',
+        #'r3_k5_s11_e6_i80_o112_se0.25', 
+        #'r4_k5_s22_e6_i112_o192_se0.25',
+        #'r1_k3_s11_e6_i192_o320_se0.25',
+        #'r1_k3_s11_e6_i24_o48_se0.25',
     ]
     blocks_args = BlockDecoder.decode(blocks_args)
 
@@ -505,3 +528,43 @@ def get_model_params(model_name, override_params):
         # ValueError will be raised here if override_params has fields not included in global_params.
         global_params = global_params._replace(**override_params)
     return blocks_args, global_params
+
+
+url_map = {
+    'efficientnet-b0': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b0-355c32eb.pth',
+    'efficientnet-b1': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b1-f1951068.pth',
+    'efficientnet-b2': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b2-8bb594d6.pth',
+    'efficientnet-b3': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b3-5fb5a3c3.pth',
+    'efficientnet-b4': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b4-6ed6700e.pth',
+    'efficientnet-b5': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b5-b6417697.pth',
+    'efficientnet-b6': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b6-c76e70fd.pth',
+    'efficientnet-b7': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b7-dcc49843.pth',
+}
+
+
+url_map_advprop = {
+    'efficientnet-b0': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b0-b64d5a18.pth',
+    'efficientnet-b1': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b1-0f3ce85a.pth',
+    'efficientnet-b2': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b2-6e9d97e5.pth',
+    'efficientnet-b3': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b3-cdd7c0f4.pth',
+    'efficientnet-b4': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b4-44fb3a87.pth',
+    'efficientnet-b5': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b5-86493f6b.pth',
+    'efficientnet-b6': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b6-ac80338e.pth',
+    'efficientnet-b7': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b7-4652b6dd.pth',
+    'efficientnet-b8': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b8-22a8fe65.pth',
+}
+
+
+def load_pretrained_weights(model, model_name, load_fc=True, advprop=False):
+    """ Loads pretrained weights, and downloads if loading for the first time. """
+    # AutoAugment or Advprop (different preprocessing)
+    url_map_ = url_map_advprop if advprop else url_map
+    state_dict = model_zoo.load_url(url_map_[model_name])
+    if load_fc:
+        model.load_state_dict(state_dict)
+    else:
+        state_dict.pop('_fc.weight')
+        state_dict.pop('_fc.bias')
+        res = model.load_state_dict(state_dict, strict=False)
+        assert set(res.missing_keys) == set(['_fc.weight', '_fc.bias']), 'issue loading pretrained weights'
+    print('Loaded pretrained weights for {}'.format(model_name))
