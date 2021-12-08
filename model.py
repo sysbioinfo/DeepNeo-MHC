@@ -19,6 +19,12 @@ from torch import optim
 
 KERNEL_SIZE = 3
 
+
+# Author: lukemelas (github username)
+# Github repo: https://github.com/lukemelas/EfficientNet-PyTorch
+# With adjustments and added comments by workingcoder (github username).
+
+
 class MBConvBlock(nn.Module):
     """
     Mobile Inverted Residual Bottleneck Block
@@ -102,14 +108,14 @@ global allele
 allele = ''
 
 
-class EfficientNet(nn.Module):
+class DeepNeo(nn.Module):
     """
-    An EfficientNet model. Most easily loaded with the .from_name or .from_pretrained methods
+    An DeepNeo model. Most easily loaded with the .from_name
     Args:
         blocks_args (list): A list of BlockArgs to construct blocks
         global_params (namedtuple): A set of GlobalParams shared between blocks
     Example:
-        model = EfficientNet.from_pretrained('efficientnet-b0')
+        model = DeepNeo.from_pretrained('DeepNeo-b0')
     """
 
 
@@ -128,7 +134,7 @@ class EfficientNet(nn.Module):
         bn_eps = self._global_params.batch_norm_epsilon
 
         # Stem
-        in_channels = 1  # rgb
+        in_channels = 1  # 2D matrix has 1 channels
         out_channels = round_filters(3, self._global_params)  # number of output channels
         self._conv_stem = Conv2d(in_channels, out_channels, kernel_size=3, stride=2, bias=False)
         self._bn0 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
@@ -154,7 +160,6 @@ class EfficientNet(nn.Module):
         # Head
         in_channels = block_args.output_filters  # output of final block maybe 16?
         out_channels = round_filters(3, self._global_params)
-        #out_channels = 1280
         self._conv_head = Conv2d(in_channels, out_channels, kernel_size=KERNEL_SIZE, bias=False)
         self._bn1 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
 
@@ -197,10 +202,9 @@ class EfficientNet(nn.Module):
         x = x.flatten(start_dim=1)
         x = self._dropout(x)
         x = self._fc(x)
-        #print(x.shape)
-       
+
         return torch.sigmoid(x)
-        
+
     @classmethod
     def from_name(cls, model_name, override_params=None):
         #cls._check_model_name_is_valid(model_name)
@@ -214,7 +218,7 @@ class EfficientNet(nn.Module):
         model = cls.from_name(model_name, override_params={'num_classes': num_classes})
         load_pretrained_weights(model, model_name, load_fc=(num_classes == 1000), advprop=advprop)
         if in_channels != 3:
-            Conv2d = get_same_padding_conv2d(image_size = model._global_params.image_size)
+            Conv2d = get_same_padding_conv2d(image_size=model._global_params.image_size)
             out_channels = round_filters(32, model._global_params)
             model._conv_stem = Conv2d(in_channels, out_channels, kernel_size=3, stride=2, bias=False)
         return model
@@ -222,7 +226,7 @@ class EfficientNet(nn.Module):
     @classmethod
     def get_image_size(cls, model_name):
         cls._check_model_name_is_valid(model_name)
-        _, _, res, _ = efficientnet_params(model_name)
+        _, _, res, _ = deepneo_params(model_name)
         return res
 
     @classmethod
@@ -281,6 +285,7 @@ class Mish(nn.Module):
 class MemoryEfficientSwish(nn.Module):
     def forward(self, x):
         return SwishImplementation.apply(x)
+
 
 class Swish(nn.Module):
     def forward(self, x):
@@ -389,22 +394,22 @@ class Identity(nn.Module):
 ########################################################################
 
 
-def efficientnet_params(model_name):
-    """ Map EfficientNet model name to parameter coefficients. """
+def deepneo_params(model_name):
+    """ Map DeepNeo model name to parameter coefficients. """
     params_dict = {
         # Coefficients:   width,depth,res,dropout
-        'efficientnet-HLA-A-9': (1.0, 1.0, [365,9], 0.2),
-        'efficientnet-HLA-B-9': (1.0, 1.0, [326,9], 0.2),
-        'efficientnet-HLA-C-9': (1.0, 1.0, [338,9], 0.2),
-        'efficientnet-HLA-A-10': (1.0, 1.0, [365,10], 0.2),
-        'efficientnet-HLA-B-10': (1.0, 1.0, [326,10], 0.2),
-        'efficientnet-HLA-C-10': (1.0, 1.0, [338,10], 0.2),
-        'efficientnet-HLA-A-9-short': (1.0, 1.0, [276,9], 0.2),
-        'efficientnet-HLA-B-9-short': (1.0, 1.0, [252,9], 0.2),
-        'efficientnet-HLA-C-9-short': (1.0, 1.0, [268,9], 0.2),
-        'efficientnet-HLA-A-10-short': (1.0, 1.0, [276,10], 0.2),
-        'efficientnet-HLA-B-10-short': (1.0, 1.0, [252,10], 0.2),
-        'efficientnet-HLA-C-10-short': (1.0, 1.0, [268,10], 0.2),
+        'DeepNeo-HLA-A-9': (1.0, 1.0, [365,9], 0.2),
+        'DeepNeo-HLA-B-9': (1.0, 1.0, [326,9], 0.2),
+        'DeepNeo-HLA-C-9': (1.0, 1.0, [338,9], 0.2),
+        'DeepNeo-HLA-A-10': (1.0, 1.0, [365,10], 0.2),
+        'DeepNeo-HLA-B-10': (1.0, 1.0, [326,10], 0.2),
+        'DeepNeo-HLA-C-10': (1.0, 1.0, [338,10], 0.2),
+        'DeepNeo-HLA-A-9-short': (1.0, 1.0, [276,9], 0.2),
+        'DeepNeo-HLA-B-9-short': (1.0, 1.0, [252,9], 0.2),
+        'DeepNeo-HLA-C-9-short': (1.0, 1.0, [268,9], 0.2),
+        'DeepNeo-HLA-A-10-short': (1.0, 1.0, [276,10], 0.2),
+        'DeepNeo-HLA-B-10-short': (1.0, 1.0, [252,10], 0.2),
+        'DeepNeo-HLA-C-10-short': (1.0, 1.0, [268,10], 0.2),
     }
     return params_dict[model_name]
         
@@ -500,7 +505,7 @@ def efficientnet(width_coefficient=None, depth_coefficient=None, dropout_rate=0.
 
     global_params = GlobalParams(
         batch_norm_momentum=0.99,
-        batch_norm_epsilon=1e-3, # original value 1e-3
+        batch_norm_epsilon=1e-3,
         dropout_rate=dropout_rate,
         drop_connect_rate=drop_connect_rate,
         # data_format='channels_last',  # removed, this is always true in PyTorch
@@ -518,7 +523,7 @@ def efficientnet(width_coefficient=None, depth_coefficient=None, dropout_rate=0.
 def get_model_params(model_name, override_params):
     """ Get the block args and global params for a given model """
     if model_name.startswith('efficientnet'):
-        w, d, s, p = efficientnet_params(model_name)
+        w, d, s, p = deepneo_params(model_name)
         # note: all models have drop connect rate = 0.2
         blocks_args, global_params = efficientnet(
             width_coefficient=w, depth_coefficient=d, dropout_rate=p, image_size=s)
@@ -530,41 +535,3 @@ def get_model_params(model_name, override_params):
     return blocks_args, global_params
 
 
-url_map = {
-    'efficientnet-b0': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b0-355c32eb.pth',
-    'efficientnet-b1': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b1-f1951068.pth',
-    'efficientnet-b2': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b2-8bb594d6.pth',
-    'efficientnet-b3': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b3-5fb5a3c3.pth',
-    'efficientnet-b4': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b4-6ed6700e.pth',
-    'efficientnet-b5': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b5-b6417697.pth',
-    'efficientnet-b6': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b6-c76e70fd.pth',
-    'efficientnet-b7': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b7-dcc49843.pth',
-}
-
-
-url_map_advprop = {
-    'efficientnet-b0': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b0-b64d5a18.pth',
-    'efficientnet-b1': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b1-0f3ce85a.pth',
-    'efficientnet-b2': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b2-6e9d97e5.pth',
-    'efficientnet-b3': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b3-cdd7c0f4.pth',
-    'efficientnet-b4': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b4-44fb3a87.pth',
-    'efficientnet-b5': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b5-86493f6b.pth',
-    'efficientnet-b6': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b6-ac80338e.pth',
-    'efficientnet-b7': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b7-4652b6dd.pth',
-    'efficientnet-b8': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b8-22a8fe65.pth',
-}
-
-
-def load_pretrained_weights(model, model_name, load_fc=True, advprop=False):
-    """ Loads pretrained weights, and downloads if loading for the first time. """
-    # AutoAugment or Advprop (different preprocessing)
-    url_map_ = url_map_advprop if advprop else url_map
-    state_dict = model_zoo.load_url(url_map_[model_name])
-    if load_fc:
-        model.load_state_dict(state_dict)
-    else:
-        state_dict.pop('_fc.weight')
-        state_dict.pop('_fc.bias')
-        res = model.load_state_dict(state_dict, strict=False)
-        assert set(res.missing_keys) == set(['_fc.weight', '_fc.bias']), 'issue loading pretrained weights'
-    print('Loaded pretrained weights for {}'.format(model_name))

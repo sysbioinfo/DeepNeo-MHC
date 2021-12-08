@@ -15,7 +15,7 @@ import collections
 from functools import partial
 from torch import optim
 from torchsummary import summary
-from efficientnet import EfficientNet
+from model import DeepNeo
 from Radam import RAdam
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import accuracy_score, roc_auc_score
@@ -71,7 +71,7 @@ def train_model_5cv(num_epochs=300):
         # Print
         print(f'FOLD {fold}')
         print('--------------------------------')
-        model = EfficientNet.from_name(f'efficientnet-{allele}-{length}-short')
+        model = DeepNeo.from_name(f'DeepNeo-{allele}-{length}-short')
         criterion = nn.BCELoss()
         optimizer = RAdam(model.parameters())
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
@@ -126,11 +126,10 @@ def train_model_5cv(num_epochs=300):
                     outputs = model(inputs)
                     precision, recall, f1 = precision_recall(labels.float().view(-1,1), outputs)
                     loss = criterion(outputs, labels.float().view(-1,1)).to(device)
-
+                    if mode == 'train':
                     # backward + optimize only if in training phase
-
-                    loss.backward()
-                    optimizer.step()
+                        loss.backward()
+                        optimizer.step()
 
                     # statistics
                     loss_ += loss.data
@@ -204,7 +203,7 @@ def train_model_5cv(num_epochs=300):
 def train_best_model(num_epochs=300):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     since = time.time()
-    model = EfficientNet.from_name(f'efficientnet-{allele}-{length}-short')
+    model = DeepNeo.from_name(f'DeepNeo-{allele}-{length}-short')
     criterion = nn.BCELoss()
     optimizer = RAdam(model.parameters())
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
@@ -226,7 +225,6 @@ def train_best_model(num_epochs=300):
     
         for data in tqdm(dataloaders):
              # get the inputs
-            #pirnt(data)
             inputs, labels = data
             inputs = Variable(inputs.to(device, dtype=torch.float), requires_grad=True)
             labels = Variable(labels.to(device))
@@ -252,8 +250,6 @@ def train_best_model(num_epochs=300):
             preds = (outputs>=0.5).float()
             corrects_ += accuracy_score(labels.cpu(), preds.cpu())
 
-
-     
         epoch_train_loss = loss_ / dataset_sizes
         epoch_train_precision = precision_ / dataset_sizes
         epoch_train_recall = recall_ / dataset_sizes
@@ -261,7 +257,6 @@ def train_best_model(num_epochs=300):
         epoch_train_acc = corrects_ / dataset_sizes
         print(f'train Loss: {epoch_train_loss:.4f} Acc: {epoch_train_acc:.4f} F1: {epoch_train_f1:.4f} Precision: {epoch_train_precision:.4f} Recall: {epoch_train_recall:.4f}')
 
-        
 
         # epoch마다 아래 정보를 출력
         writer.add_scalars('Loss' , {'train':epoch_train_loss}, epoch)
@@ -270,7 +265,6 @@ def train_best_model(num_epochs=300):
         writer.add_scalars('precision' , {'train':epoch_train_precision},  epoch)
         writer.add_scalars('recall' , {'train':epoch_train_recall},  epoch)
 
-      
 
         best_model_wts = model.state_dict()
         # save
@@ -296,7 +290,7 @@ if __name__ == "__main__":
     os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   
     os.environ["CUDA_VISIBLE_DEVICES"]=gpu_num
     print(f'Using CUDA_VISIBLE_DEVICES {gpu_num}')
-    model = EfficientNet.from_name(f'efficientnet-{allele}-{length}-short')
+    model = DeepNeo.from_name(f'DeepNeo-{allele}-{length}-short')
 
     if dataset == 'random':
         df = pd.read_pickle('MS_BA_training_set.pkl')
@@ -333,7 +327,7 @@ if __name__ == "__main__":
                                                     list(answer), 
                                                     test_size=0.15,
                                                     random_state=42,
-                                                     stratify=df['stratify'])
+                                                    stratify=df['stratify'])
 
     try:
         xTrain = np.concatenate([xTrain, matrix_])
@@ -388,8 +382,8 @@ if __name__ == "__main__":
     dataloaders = data_utils.DataLoader(dataset, batch_size=BATCH_SIZE, pin_memory=True, shuffle=True)
     dataset_sizes = len(dataloaders)
     if dataset == 'random':
-        save_dir = f'saved_model/DeepNeo_Sep_18_{allele}_{length}_final'
+        save_dir = f'saved_model/DeepNeo_MHC_random_protein_{allele}_{length}_final'
     else:
-        save_dir = f'saved_model/DeepNeo_Sep_18_natural_protein_{allele}_{length}_final'
+        save_dir = f'saved_model/DeepNeo_MHC_natural_protein_{allele}_{length}_final'
     writer = SummaryWriter(save_dir)
     model = train_best_model(best_epoch)

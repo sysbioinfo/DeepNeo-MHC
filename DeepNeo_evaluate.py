@@ -4,7 +4,7 @@ import pandas as pd
 from tqdm.auto import tqdm
 from benchmark_util import *
 import torch
-from efficientnet import *
+from model import *
 import gc
 
 
