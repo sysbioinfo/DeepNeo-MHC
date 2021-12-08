@@ -125,7 +125,7 @@ if __name__ == "__main__":
     HLA_A_9, HLA_B_9, HLA_C_9, HLA_A_10, HLA_B_10, HLA_C_10 = load_weight(false_mode)
 
     # make input 2d matrix
-    df = use_multicore(data, multiprocessing.cpu_count())  # type nums of cpu cores how many you want
+    data = use_multicore(data, multiprocessing.cpu_count())  # type nums of cpu cores how many you want
     # inference, you can change result file name
     bench_short_model(data, file_name='result.pkl', false_mode=false_mode)
 

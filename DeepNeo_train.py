@@ -93,7 +93,7 @@ def train_model_5cv(num_epochs=300):
                       dataset,
                       batch_size=10, sampler=test_subsampler)
         
-        dataloaders = {'train':train_loader,'valid':valid_loader}
+        dataloaders = {'train': trainloader, 'valid': testloader}
         dataset_sizes = {x: len(dataloaders[x]) for x in ['train', 'valid']}
         
         for epoch in tqdm(range(num_epochs), position=0, leave=True):
@@ -139,7 +139,6 @@ def train_model_5cv(num_epochs=300):
                     preds = (outputs>=0.5).float()
                     corrects_ += accuracy_score(labels.cpu(), preds.cpu())
 
-
                 if mode == 'train': 
                     epoch_train_loss = loss_ / dataset_sizes[f'train']
                     epoch_train_precision = precision_ / dataset_sizes[f'train']
@@ -147,7 +146,6 @@ def train_model_5cv(num_epochs=300):
                     epoch_train_f1 = f1_ / dataset_sizes[f'train']
                     epoch_train_acc = corrects_ / dataset_sizes[f'train']
                     print(f'train Loss: {epoch_train_loss:.4f} Acc: {epoch_train_acc:.4f} F1: {epoch_train_f1:.4f} Precision: {epoch_train_precision:.4f} Recall: {epoch_train_recall:.4f}')
-
                 else:
                     epoch_val_loss = loss_ / dataset_sizes[f'valid']
                     epoch_val_precision = precision_ / dataset_sizes[f'valid']
@@ -159,11 +157,11 @@ def train_model_5cv(num_epochs=300):
 
 
             # epoch마다 아래 정보를 출력
-            writer.add_scalars('Loss' , {f'train_{fold}':epoch_train_loss, f'validation_{fold}':epoch_val_loss}, epoch)
-            writer.add_scalars('Accuracy' , {f'train_{fold}':epoch_train_acc, f'validation_{fold}':epoch_val_acc},  epoch)
-            writer.add_scalars('F1' , {f'train_{fold}':epoch_train_f1, f'validation_{fold}':epoch_val_f1},  epoch)
-            writer.add_scalars('precision' , {f'train_{fold}':epoch_train_precision, f'validation_{fold}':epoch_val_precision},  epoch)
-            writer.add_scalars('recall' , {f'train_{fold}':epoch_train_recall, f'validation_{fold}':epoch_val_recall},  epoch)
+            writer.add_scalars('Loss', {f'train_{fold}':epoch_train_loss, f'validation_{fold}':epoch_val_loss}, epoch)
+            writer.add_scalars('Accuracy', {f'train_{fold}':epoch_train_acc, f'validation_{fold}':epoch_val_acc},  epoch)
+            writer.add_scalars('F1', {f'train_{fold}':epoch_train_f1, f'validation_{fold}':epoch_val_f1},  epoch)
+            writer.add_scalars('precision', {f'train_{fold}':epoch_train_precision, f'validation_{fold}':epoch_val_precision},  epoch)
+            writer.add_scalars('recall', {f'train_{fold}':epoch_train_recall, f'validation_{fold}':epoch_val_recall},  epoch)
 
             # deep copy the model
             if  epoch_val_loss < best_loss:
@@ -284,8 +282,11 @@ def train_best_model(num_epochs=300):
 if __name__ == "__main__":
     allele = sys.argv[1]
     length = sys.argv[2]
-    gpu_num = sys.argv[3]
-    dataset = sys.argv[4]
+    dataset = sys.argv[3]
+    try:
+        gpu_num = sys.argv[4]
+    except:
+        gpu_num = 0
 
     os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   
     os.environ["CUDA_VISIBLE_DEVICES"]=gpu_num
