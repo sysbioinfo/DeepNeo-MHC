@@ -348,7 +348,7 @@ if __name__ == "__main__":
     train_loader = data_utils.DataLoader(train_set, batch_size=BATCH_SIZE, pin_memory=True, shuffle=True)
     valid_loader = data_utils.DataLoader(valid_set, batch_size=BATCH_SIZE, )
 
-    dataloaders = {'train':train_loader,'valid':valid_loader}
+    dataloaders = {'train' : train_loader, 'valid' : valid_loader}
     dataset_sizes = {x: len(dataloaders[x]) for x in ['train', 'valid']}
     dataset = ConcatDataset([train_set, valid_set]) 
     
